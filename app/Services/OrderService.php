@@ -40,7 +40,6 @@ class OrderService
                 $merchant =  $this->merchantServices->findMerchantByDomainCode($data['merchant_domain']);
                 $affiliate = $this->affiliateService->findAffiliateByEmail($data['customer_email']);
                 $affiliateByCode = $this->affiliateService->findAffiliateByDiscountCode($data['discount_code']);
-                // dd($affiliateByCode);
                 if(empty($affiliate)){
                     $affiliate = $this->affiliateService->register($merchant, $email, $data['customer_name'], 0.1);
                 }
@@ -61,7 +60,8 @@ class OrderService
             }
 
         }catch(Exception $e){
-            // dd($e->getCode());
+            \DB::rollBack();
+            dd($e->getMessage());
             // if($e->getCode())
                 // \DB::rollBack();
         }
