@@ -7,6 +7,9 @@ use App\Models\Affiliate;
 use App\Models\Merchant;
 use App\Models\Order;
 use App\Models\User;
+use Exception;
+use Illuminate\Database\Eloquent\Builder;
+
 
 class MerchantService
 {
@@ -20,7 +23,39 @@ class MerchantService
      */
     public function register(array $data): Merchant
     {
+      
         // TODO: Complete this method
+
+        \DB::beginTransaction();
+        $merchant =  new Merchant([ 
+            'display_name' => $data['name'],
+            'domain' => $data['domain']
+            ]);
+        try {
+
+            $user = User::create([
+                'email' => $data['email'],
+                'name'  => $data['name'],
+                // 'password' => \Hash::make($data['api_key']),
+                'password' => $data['api_key'],
+                'type' => User::TYPE_MERCHANT,
+
+            ]);
+            // $user->refresh();
+            //    $user->merchant()->create([
+            //         'display_name' => $data['name'],
+            //         'domain' => $data['domain']
+            //         ]);
+            $user->merchant()->save($merchant);         
+            \DB::commit();
+
+        }catch(Exception $e){
+            \DB::rollback();
+            dd($e->getMessage());
+        }
+
+        return $merchant;
+
     }
 
     /**
@@ -30,8 +65,18 @@ class MerchantService
      * @return void
      */
     public function updateMerchant(User $user, array $data)
-    {
-        // TODO: Complete this method
+    {   
+        try{
+            \DB::beginTransaction();
+            $merchant = Merchant::whereUserId($user->id)
+            ->update([ 'display_name' => $data['name'],
+                       'domain' => $data['domain']]);
+            \DB::commit();
+        }catch(Exception $e){
+            \DB::rollback();
+            dd($e->getMessage());
+        }
+        
     }
 
     /**
@@ -43,7 +88,9 @@ class MerchantService
      */
     public function findMerchantByEmail(string $email): ?Merchant
     {
-        // TODO: Complete this method
+        return Merchant::whereHas('user',function(Builder $query) use($email){
+            $query->where('email',$email);
+        })->first();
     }
 
     /**
@@ -56,5 +103,25 @@ class MerchantService
     public function payout(Affiliate $affiliate)
     {
         // TODO: Complete this method
+
+        try{
+            if($affiliate && isset($affiliate->orders) && !empty($affiliate->orders)){
+                // dd($affiliate->orders);
+                foreach($affiliate->orders as $order){
+                    if($order->payout_status == Order::STATUS_UNPAID){
+                        dispatch(new PayoutOrderJob($order));
+                    }
+                }
+                
+            }
+
+        }catch(Exception $e){
+
+        }
+    }
+
+
+    public function findMerchantByDomainCode($code): ?Merchant {
+       return  Merchant::where('domain',$code)->first();
     }
 }

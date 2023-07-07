@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Merchant;
+use App\Models\Order;
 use App\Services\MerchantService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -23,5 +24,24 @@ class MerchantController extends Controller
     public function orderStats(Request $request): JsonResponse
     {
         // TODO: Complete this method
+        $to = $request->to;
+        $from = $request->from;
+        $response = ['count' => 0, 'revenue' => 0, 'commissions_owed' => 0];
+      
+        $query = Order::whereBetween('created_at', [$from, $to]);
+        $count = $query->count();
+        $subtotal= $query->sum('subtotal');
+        $commession_owed = $query->sum('commission_owed');
+        $nonAffiliate = $query->whereNull('affiliate_id')->sum('commission_owed');
+        // dd($nonAffiliate);
+
+        $response['count'] = $count;
+        $response['revenue'] = $subtotal;
+        $response['commissions_owed'] = $commession_owed - $nonAffiliate;
+        //dd($response);
+
+        return response()->json($response);
+
+        
     }
 }

@@ -4,6 +4,8 @@ namespace App\Services;
 
 use App\Models\Affiliate;
 use App\Models\Merchant;
+use Exception;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use RuntimeException;
 
@@ -37,6 +39,25 @@ class ApiService
      */
     public function sendPayout(string $email, float $amount)
     {
-        //
+       
+        try{
+            if(!empty($email) && !empty($amount)){
+                $data = ['amount' => $amount];
+                Mail::send('view.name', $data, function($message) use($email){
+                    $message->to($email);
+                    $message->subject('Payout Notification Alert!');
+                });
+                return true;
+            }
+
+        }catch(Exception $e){
+            //dd($e->getMessage());
+            throw new RuntimeException($e->getMessage());
+        }
+        catch(RuntimeException $e){
+            throw new RuntimeException($e->getMessage());
+        }
+
+        
     }
 }
