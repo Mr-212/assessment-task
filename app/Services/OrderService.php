@@ -34,6 +34,8 @@ class OrderService
     {
         // TODO: Complete this method
         try{
+            /DB::beginTransaction();
+
             if(!empty($data)){
                 if($this->checkDuplicateOrderExists($data['order_id'])) return;
                 $email = $data['customer_email'];
